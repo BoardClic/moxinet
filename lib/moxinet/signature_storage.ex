@@ -58,7 +58,50 @@ defmodule Moxinet.SignatureStorage do
     }
 
     case GenServer.call(pid, {:find_signature, signature}) do
-      {:ok, mock_callback} -> {:ok, mock_callback}
+      {:ok, mock_callback} ->
+        {:ok, mock_callback}
+
+      {:error, reason} ->
+        case GenServer.call(pid, {:get_proxy, signature}) do
+          {:ok, signature} ->
+            case GenServer.call(pid, {:find_signature, signature}) do
+              {:ok, mock_callback} -> {:ok, mock_callback}
+              {:error, reason} -> {:error, reason}
+            end
+
+          {:error, :not_found} ->
+            {:error, reason}
+
+          {:error, reason} ->
+            {:error, reason}
+        end
+    end
+  end
+
+  @spec add_proxy(module(), pid(), Moxinet.http_method(), binary(), keyword()) ::
+          :ok | {:error, :not_found}
+  def add_proxy(scope, owner, method, path, options \\ []) do
+    %{storage: storage_pid, proxy: proxy_pid} =
+      options
+      |> Keyword.validate!(storage: __MODULE__, proxy: self())
+      |> Map.new()
+
+    owner_signature = %Signature{
+      mock_module: scope,
+      pid: pid_reference(owner),
+      method: method |> to_string() |> String.upcase(),
+      path: path
+    }
+
+    proxy_signature = %Signature{
+      mock_module: scope,
+      pid: pid_reference(proxy_pid),
+      method: method |> to_string() |> String.upcase(),
+      path: path
+    }
+
+    case GenServer.call(storage_pid, {:add_proxy, owner_signature, proxy_signature}) do
+      :ok -> :ok
       {:error, reason} -> {:error, reason}
     end
   end
@@ -76,6 +119,20 @@ defmodule Moxinet.SignatureStorage do
   @impl GenServer
   def handle_call({:find_signature, signature}, _from, state) do
     {response, state} = State.get_signature(state, signature)
+
+    {:reply, response, state}
+  end
+
+  @impl GenServer
+  def handle_call({:add_proxy, owner_signature, proxy_signature}, _from, state) do
+    {response, state} = State.put_proxy(state, owner_signature, proxy_signature)
+
+    {:reply, response, state}
+  end
+
+  @impl GenServer
+  def handle_call({:get_proxy, proxy_signature}, _from, state) do
+    {response, state} = State.get_proxy(state, proxy_signature)
 
     {:reply, response, state}
   end

@@ -6,10 +6,11 @@ defmodule Moxinet.SignatureStorage.State do
 
   @type t :: %__MODULE__{
           signatures: %{Signature.t() => [Mock.t()]},
-          monitors: %{pid() => pid()}
+          monitors: %{pid() => pid()},
+          proxies: %{Signature.t() => Signature.t()}
         }
 
-  defstruct signatures: %{}, monitors: %{}
+  defstruct signatures: %{}, monitors: %{}, proxies: %{}
 
   @spec get_signature(t(), Signature.t()) ::
           {{:ok, Mock.callback()}, t()}
@@ -77,5 +78,21 @@ defmodule Moxinet.SignatureStorage.State do
   @spec remove_monitor(t(), pid()) :: t()
   def remove_monitor(%__MODULE__{monitors: monitors} = state, monitored_pid) do
     %{state | monitors: Map.drop(monitors, [monitored_pid])}
+  end
+
+  @spec put_proxy(t(), Signature.t(), Signature.t()) :: {:ok, t()} | {{:error, :not_found}, t()}
+  def put_proxy(%__MODULE__{proxies: proxies, signatures: signatures} = state, owner, proxy) do
+    case Map.fetch(signatures, owner) do
+      {:ok, owner} -> {:ok, %{state | proxies: Map.put(proxies, proxy, owner)}}
+      :error -> {{:error, :not_found}, state}
+    end
+  end
+
+  @spec get_proxy(t(), Signature.t()) :: {{:ok, Signature.t()}, t()} | {{:error, :not_found}, t()}
+  def get_proxy(%__MODULE__{proxies: proxies} = state, proxy) do
+    case Map.fetch(proxies, proxy) do
+      {:ok, owner} -> {{:ok, owner}, state}
+      :error -> {{:error, :not_found}, state}
+    end
   end
 end

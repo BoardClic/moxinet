@@ -49,6 +49,10 @@ defmodule Moxinet.Mock do
       def expect(http_method, path, callback, options \\ []) do
         Moxinet.expect(__MODULE__, http_method, path, callback, options)
       end
+
+      def add_proxy(owner, http_method, path, options \\ []) do
+        Moxinet.add_proxy(__MODULE, owner, http_method, path, options)
+      end
     end
   end
 
