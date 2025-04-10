@@ -22,7 +22,7 @@ defmodule Moxinet.ServerTest do
       _ = SignatureStorage.start_link(name: SignatureStorage)
 
       Mock.expect(:get, "/mocked_path", fn _payload ->
-        %Response{status: 418, headers: %{"hello-world" => "hi again"}, body: "Hello world"}
+        %Response{status: 418, headers: %{"my-header" => "My header value"}, body: "Hello world"}
       end)
 
       conn =
