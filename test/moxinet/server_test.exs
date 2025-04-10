@@ -22,7 +22,7 @@ defmodule Moxinet.ServerTest do
       _ = SignatureStorage.start_link(name: SignatureStorage)
 
       Mock.expect(:get, "/mocked_path", fn _payload ->
-        %Response{status: 418, headers: %{"my-header" => "My header value"}, body: "Hello world"}
+        %Response{status: 418, headers: [{"my-header", "My header value"}], body: "Hello world"}
       end)
 
       conn =
@@ -32,7 +32,7 @@ defmodule Moxinet.ServerTest do
       assert %Plug.Conn{status: 418, resp_body: "Hello world", resp_headers: resp_headers} =
                MockServer.call(conn, MockServer.init([]))
 
-      assert {"hello-world", "hi again"} in resp_headers
+      assert {"my-header", "My header value"} in resp_headers
     end
   end
 end

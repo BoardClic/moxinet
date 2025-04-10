@@ -28,7 +28,7 @@ defmodule Moxinet.MockTest do
           :post,
           "/path",
           fn _payload ->
-            %Response{status: 499, headers: %{"my-header" => "my value"}, body: "My body"}
+            %Response{status: 499, headers: [{"my-header", "my value"}], body: "My body"}
           end,
           pid: self()
         )
